@@ -6,6 +6,9 @@ OECD's development-finance statistics (ODA, the CRS, the DAC tables).
 They are plain Markdown with YAML frontmatter, the [Agent Skills][spec] format,
 so any client that reads that format can load them.
 
+See [EXAMPLES.md](EXAMPLES.md) for four worked cases, with real figures, where
+an agent carrying these answers differently from one that is not.
+
 | Skill | Use it when |
 |---|---|
 | [`qwids-development-finance`](qwids-development-finance/SKILL.md) | Getting a defensible figure out of the typed API, and reading the answer: routing, measures, prices, markers, refusals, citation. |

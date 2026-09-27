@@ -30,32 +30,46 @@ timeout and the vintage.
 guard, no exclusion of subtotal rows, no routing. A query that adds an aggregate
 to its own members returns a number, and the number is wrong.
 
-Specifically, the DAC tables contain group-total rows such as "DAC Countries,
-Total" in the same column as their members. `SELECT sum(value) FROM dac2b`
-double-counts. The typed API excludes those rows and says it did; here you have
-to exclude them yourself.
+Specifically, the DAC tables hold two things in the one `value` column that
+must never be added:
+
+- **Group totals beside their members**, for providers ("DAC Countries,
+  Total") and for recipients ("Developing countries, total") alike. Exclude
+  them with `dim_provider.is_aggregate` and `dim_recipient.is_aggregate`.
+- **Both price bases**: `price = 'A'` is current prices, `price = 'D'`
+  constant. Pick one.
+
+`SELECT sum(value) FROM dac2b` does both, and comes out about 80 times too big
+(EXAMPLES.md, case 3). The typed API excludes those rows and says it did; here
+you have to exclude them yourself.
 
 If the figure is going into a publication, get it from `/v1/datasets/...` or the
 Explorer instead, and use the console to explore.
 
 ## What is in it
 
-Twenty tables: the ten fact tables (`crs`, `dac1`, `dac2a`, `dac2b`, `dac3a`,
-`dac4`, `dac5`, `dac7b`, `cpa`, `gender`) and the `dim_*` reference tables that
+Twenty-five tables: the thirteen fact tables (`crs`, `dac1`, `dac2a`, `dac2b`,
+`dac3a`, `dac4`, `dac5`, `dac7b`, `cpa`, `gender`, `mobilised`,
+`crdf_provider`, `crdf_recipient`) and twelve `dim_*` reference tables that
 give readable labels (`dim_provider`, `dim_recipient`, `dim_purpose`,
 `dim_channel`, `dim_finance`, `dim_modality`, `dim_aidtype`, `dim_agency`,
-`dim_marker`, `dim_dacsector`).
+`dim_marker`, `dim_dacsector`, `dim_bimulti`, `dim_incomegroup`).
 
-Join a fact table to a dim on its code column to get names:
-`JOIN dim_provider d ON d.code = c.donor_code`. Every dim carries `name_en` and
-`name_fr`.
+Most dims are keyed on `code` and carry `name_en` and `name_fr`:
+`JOIN dim_provider d ON d.code = c.donor_code`. Three differ:
 
-**`crs` here has 100 columns, not the full 102.** `project_title`,
+- `dim_recipient` is keyed on `recipient_code`.
+- `dim_aidtype` and `dim_dacsector` are shared by several tables, so they are
+  keyed on `(dataset, code)` and named by `label`, in English only. Join on
+  both: `JOIN dim_aidtype a ON a.dataset = 'dac2b' AND a.code = d.aidtype`.
+
+**`crs` here has 100 of its 103 columns.** `project_title`,
 `short_description` and `long_description` are left out: they are 348 MB of the
 648 MB the table occupies, and excluding them keeps the console's copy roughly
-the size of the warehouse it mirrors. **Free-text search is therefore not
-possible in the console.** Use `GET /v1/datasets/crs/data?q=...` or the Activity
-search page for that.
+the size of the warehouse it mirrors. The climate tables leave out their title
+and description the same way. **Free-text search is therefore not possible in
+the console.** Use `q=` on `/v1/datasets/crs/data` (or on `crdf_provider`,
+`crdf_recipient`), or the Activity search page, for that.
 
 The cubes are not exposed either. Write your own `GROUP BY`.
 
@@ -94,4 +108,17 @@ SELECT donor_code, sum(usd_disbursement) FROM crs WHERE year = 2022 GROUP BY 1
 ```
 
 against `/v1/datasets/crs/data?years=2022&group_by=donor&measures=disbursement`.
-If they disagree, the usual cause is subtotal rows in your SQL.
+For a DAC table, keep one price base and no group totals on either side:
+
+```sql
+SELECT round(sum(d.value), 1)
+FROM dac2b d
+JOIN dim_provider p ON p.code = d.donor
+JOIN dim_recipient r ON r.recipient_code = d.recipient
+WHERE d.year = 2022 AND d.aidtype = 296 AND d.price = 'A'
+  AND NOT p.is_aggregate AND NOT r.is_aggregate
+```
+
+gives 46,986.5, the total of
+`/v1/datasets/dac2b/data?years=2022&aid_type=296&group_by=donor`. If they
+disagree, the usual cause is subtotal rows or a second price base in your SQL.

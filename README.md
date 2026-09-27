@@ -18,7 +18,7 @@ an agent carrying these answers differently from one that is not.
 
 QWIDS serves an MCP endpoint at `/mcp/` with four typed tools. That gives an
 agent the ability to *call* QWIDS. It does not give it the judgement to call it
-well: which of ten tables answers a question, why a refusal is correct rather
+well: which of thirteen tables answers a question, why a refusal is correct rather
 than an obstacle, that an empty policy marker means "not screened" rather than
 zero, or that a figure from the SQL console has had none of the methodology
 rules applied to it.

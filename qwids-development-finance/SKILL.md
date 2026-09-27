@@ -166,6 +166,31 @@ The parameter is `levels` (plural, a comma list). `level` is a valid parameter
 on `/data` and has no effect here; the export says so if you send it, but do not
 rely on being told.
 
+## Whole tables
+
+For "the whole table" or "all of CRS for 2023", do not page through `/data` or
+build an export: `/export` keeps only the first 500,000 activity rows (75,000
+in xlsx) and says so in a notice.
+`GET /v1/bulk` lists every table of the vintage as a zipped CSV and a Parquet
+file, CRS one pair per year, each with its `rows`, `bytes` and an `href`. The
+`href` redirects to a signed storage link valid for an hour, and each zip
+carries a README with the citation. Every code comes with its English name.
+
+## SDMX
+
+`/sdmx/data/{agency},{dataflow},{version}/{key}` serves CRS and the ten DAC
+dataflows (every table but the two climate views) in the OECD's own key order
+and codes, so a key from OECD Data Explorer works unchanged:
+
+```
+GET /sdmx/data/OECD.DCD.FSD,DSD_DAC2@DF_DAC2A,1.6/FRA.KEN.206.USD.V?startPeriod=2022&endPeriod=2022&format=csvfile
+```
+
+returns France's net ODA to Kenya, 41.99. Each dataflow keys differently (DAC7B
+puts SECTOR last); `/sdmx/conformance` lists every key and every deviation.
+**Never sum across a wildcard**: an open position returns group totals (`DAC`,
+`DPGC`, SECTOR `1000`) beside their members. Ask for the total's code instead.
+
 ## Finding codes
 
 `GET /v1/codelists/{dimension}?q=...` resolves a name to a code. Filters also
